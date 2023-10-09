@@ -1,30 +1,53 @@
 const mongoose = require('mongoose');
-// const bcrypt = require('bcrypt');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const bcrypt = require('bcryptjs');
 
 const { Schema } = mongoose;
-const { urlRegexPattern } = require('../utils/constants').default;
+const { urlRegexPattern } = require('../utils/constants');
 
-const userSchema = new Schema({
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    validate: {
-      validator: (url) => urlRegexPattern.isEmail(url),
-      message: 'Требуется ввести электронный адрес',
+const userSchema = new Schema(
+  {
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      validate: {
+        validator: (url) => urlRegexPattern.isEmail(url),
+        message: 'Требуется ввести электронный адрес',
+      },
+    },
+    password: {
+      type: String,
+      select: false,
+      required: true,
+    },
+    name: {
+      type: String,
+      minlength: 2,
+      maxlength: 30,
+      required: true,
     },
   },
-  password: {
-    type: String,
-    select: false,
-    required: true,
+  {
+    versionKey: false,
+    statics: {
+      findUserByCredentials(email, password) {
+        return this.findOne({ email })
+          .select('+password')
+          .then((user) => {
+            if (user) {
+              return bcrypt.compare(password, user.password).then((matched) => {
+                if (matched) return user;
+
+                return Promise.reject();
+              });
+            }
+
+            return Promise.reject();
+          });
+      },
+    },
   },
-  name: {
-    type: String,
-    minlength: 2,
-    maxlength: 30,
-    required: true,
-  },
-});
+);
 
 module.exports = mongoose.model('user', userSchema);
