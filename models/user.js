@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const { Schema } = mongoose;
-const { urlRegexPattern } = require('../utils/constants');
 
 const userSchema = new Schema(
   {
@@ -12,7 +11,7 @@ const userSchema = new Schema(
       required: true,
       unique: true,
       validate: {
-        validator: (url) => urlRegexPattern.isEmail(url),
+        validator: (email) => /.+@.+\..+/.test(email),
         message: 'Требуется ввести электронный адрес',
       },
     },
