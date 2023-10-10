@@ -1,7 +1,7 @@
 const router = require('express').Router();
 // eslint-disable-next-line import/no-extraneous-dependencies
 const { celebrate, Joi } = require('celebrate');
-const { registration } = require('../controllers/user');
+const { registration } = require('../controllers/users');
 
 router.post(
   '/signup',

@@ -5,7 +5,7 @@ const { celebrate, Joi } = require('celebrate');
 const {
   getUserId,
   editProfileUserInfo,
-} = require('../controllers/user');
+} = require('../controllers/users');
 
 router.get('/me', getUserId);
 router.patch(

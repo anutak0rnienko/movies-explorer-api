@@ -14,8 +14,8 @@ const limiter = require('./middlewares/rateLimiter');
 const routeSignup = require('./routes/signup');
 const routeSignin = require('./routes/signin');
 const auth = require('./middlewares/auth');
-const routeUser = require('./routes/user');
-const routeMovie = require('./routes/movie');
+const routeUsers = require('./routes/users');
+const routeMovies = require('./routes/movies');
 const NotFoundError = require('./errors/NotFoundError');
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -60,8 +60,8 @@ app.use(auth);
 
 app.use(errorLogger);
 
-app.use('/user', routeUser);
-app.use('/movie', routeMovie);
+app.use('/users', routeUsers);
+app.use('/movies', routeMovies);
 
 app.use((req, res, next) => next(new NotFoundError('Страницы по запрошенному URL не существует')));
 app.use(errors());

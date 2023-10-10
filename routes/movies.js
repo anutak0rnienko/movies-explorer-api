@@ -7,7 +7,7 @@ const {
   getMovie,
   addNewMovie,
   removeMovie,
-} = require('../controllers/movie');
+} = require('../controllers/movies');
 
 router.post(
   '/',

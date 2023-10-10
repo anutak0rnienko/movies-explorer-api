@@ -71,7 +71,13 @@ function editProfileUserInfo(req, res, next) {
       throw new NotFoundError('Пользователь с таким id не найден');
     })
     .catch((err) => {
-      if (err.name === 'ValidationError' || err.name === 'CastError') {
+      if (err.code === 11000) {
+        next(
+          new ConflictError(
+            'Пользователь с таким электронным адресом уже зарегистрирован',
+          ),
+        );
+      } else if (err.name === 'ValidationError' || err.name === 'CastError') {
         next(
           new BadRequestError(
             'Переданы некорректные данные при обновлении профиля',
