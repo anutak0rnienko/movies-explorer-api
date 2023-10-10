@@ -30,7 +30,7 @@ const movieSchema = new Schema({
     required: true,
     validate: {
       validator: (url) => urlRegexPattern.test(url),
-      message: 'Укадите корректную ссылку на картинку',
+      message: 'Укажите корректную ссылку на картинку',
     },
   },
   trailerLink: {

@@ -1,6 +1,6 @@
 const allowedCors = [
-  // 'https://domainname.anna.nomoredomainsrocks.ru',
-  // 'http://domainname.anna.nomoredomainsrocks.ru',
+  'https://domainname.annamovie.nomoredomainsrocks.ru',
+  'http://domainname.annamovie.nomoredomainsrocks.ru',
   'https://localhost:3000',
   'http://localhost:3000',
   'https://localhost:3001',
