@@ -5,9 +5,9 @@ const NotFoundError = require('../errors/NotFoundError');
 const AccessDeniedError = require('../errors/AccessDeniedError');
 
 // Получение массива карточек
-function getMovie(_, res, next) {
-  Movie.find({})
-    .then((movies) => res.send({ data: movies }))
+function getMovie(req, res, next) {
+  Movie.find({ owner: req.user._id })
+    .then((movies) => res.send(movies))
     .catch(next);
 }
 
