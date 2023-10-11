@@ -6,8 +6,7 @@ const { NODE_ENV } = process.env;
 if (NODE_ENV === 'production') {
   config();
 }
-
-const { AUTH_KEY = 'dev-secret' } = process.env;
+const AUTH_KEY = process.env.NODE_ENV === 'production' ? process.env.AUTH_KEY : 'dev-secret';
 
 const urlRegexPattern = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
 
