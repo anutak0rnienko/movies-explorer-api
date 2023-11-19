@@ -1,17 +1,13 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-const { config } = require('dotenv');
+const CREATED_CODE = 201;
 
-const { NODE_ENV } = process.env;
-
-if (NODE_ENV === 'production') {
-  config();
-}
-const AUTH_KEY = process.env.NODE_ENV === 'production' ? process.env.AUTH_KEY : 'dev-secret';
-
+// Регулярное выражение
 const urlRegexPattern = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
 
+// Секретный ключ для режима разработки
+const SECRET_KEY_DEV = 'dev-secret';
+
 module.exports = {
-  AUTH_KEY,
+  CREATED_CODE,
   urlRegexPattern,
-  NODE_ENV,
+  SECRET_KEY_DEV,
 };

@@ -1,137 +1,113 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-require('dotenv').config();
-// eslint-disable-next-line import/no-extraneous-dependencies
 const bcrypt = require('bcryptjs');
-// eslint-disable-next-line import/no-extraneous-dependencies
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-
-const { NODE_ENV, AUTH_KEY } = require('../utils/constants');
-const NotFoundError = require('../errors/NotFoundError');
-const ConflictError = require('../errors/ConflictError');
 const BadRequestError = require('../errors/BadRequestError');
-const UnauthorizedError = require('../errors/UnauthorizedError');
+const ConflictError = require('../errors/ConflictError');
+const NotFoundError = require('../errors/NotFoundError');
 
-// Поиск юзера по его id
-function getUserId(req, res, next) {
-  const { id } = req.params;
-  User.findById(id)
-    .then((user) => {
-      if (user) return res.send(user);
-      throw new NotFoundError('Пользователь с таким id не найден');
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new BadRequestError('Передан некорректный id'));
+const { NODE_ENV, AUTHENTICATION_KEY } = process.env;
+const { SECRET_KEY_DEV, CREATED_CODE } = require('../utils/constants');
+
+// Регистрирую в приложении нового пользователя
+const registrationUser = (req, res, next) => {
+  bcrypt
+    .hash(req.body.password, 10)
+    .then((hash) => User.create({
+      email: req.body.email,
+      password: hash,
+      name: req.body.name,
+    }))
+    .then((user) => res.status(CREATED_CODE).send({
+      email: user.email,
+      name: user.name,
+      _id: user._id,
+    }))
+    .catch((e) => {
+      if (e.code === 11000) {
+        next(new ConflictError('Такой пользователь уже существует'));
+      } else if (e.name === 'ValidationError') {
+        next(
+          new BadRequestError(
+            'Переданы некорректные данные при создании пользователя',
+          ),
+        );
       } else {
-        next(err);
+        next(e);
       }
     });
-}
+};
 
-// Логин юзера
-function login(req, res, next) {
+// Логин пользователя
+const loginUser = (req, res, next) => {
   const { email, password } = req.body;
-  User.findUserByCredentials(email, password)
-    .then(({ _id: userId }) => {
-      if (userId) {
-        const token = jwt.sign(
-          { userId },
-          NODE_ENV === 'production' ? AUTH_KEY : 'dev-secret',
-          { expiresIn: '7d' },
-        );
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      // Создание JWT-токена
+      const token = jwt.sign(
+        { _id: user._id },
+        NODE_ENV === 'production' ? AUTHENTICATION_KEY : SECRET_KEY_DEV,
+        { expiresIn: '7d' },
+      );
 
-        return res.send({ token });
-      }
-
-      throw new UnauthorizedError('Неправильные почта или пароль');
+      res.send({ token });
     })
     .catch(next);
-}
+};
 
-// редактирование данных юзера
-function editProfileUserInfo(req, res, next) {
-  const { name, email } = req.body;
-  const { userId } = req.user;
+// Получение данных пользователя
+const getUserInfo = (req, res, next) => {
+  const userId = req.user._id;
+  User.findById(userId)
+    .orFail(() => {
+      throw new NotFoundError('Пользователь по указанному _id не найден');
+    })
+    .then((user) => {
+      res.send(user);
+    })
+    .catch((e) => {
+      if (e.name === 'CastError') {
+        next(new BadRequestError('Запрашиваемый пользователь не найден'));
+      } else {
+        next(e);
+      }
+    });
+};
 
+// Редактирование данных пользователя
+const editUserInfo = (req, res, next) => {
+  const { email, name } = req.body;
   User.findByIdAndUpdate(
-    userId,
-    {
-      name,
-      email,
-    },
+    req.user._id,
+    { email, name },
     {
       new: true,
       runValidators: true,
     },
   )
-    .then((user) => {
-      if (user) return res.send(user);
-
-      throw new NotFoundError('Пользователь с таким id не найден');
+    .orFail(() => {
+      throw new NotFoundError('Пользователь с указанным _id не найден');
     })
-    .catch((err) => {
-      if (err.code === 11000) {
-        next(
-          new ConflictError(
-            'Пользователь с таким электронным адресом уже зарегистрирован',
-          ),
-        );
-      } else if (err.name === 'ValidationError' || err.name === 'CastError') {
+    .then((user) => {
+      res.send(user);
+    })
+    .catch((e) => {
+      if (e.code === 11000) {
+        next(new ConflictError('Такой пользователь уже существует'));
+      } else if (e.name === 'ValidationError') {
         next(
           new BadRequestError(
             'Переданы некорректные данные при обновлении профиля',
           ),
         );
       } else {
-        next(err);
+        next(e);
       }
     });
-}
-
-// Регистрация юзера
-function registration(req, res, next) {
-  const {
-    email, password, name,
-  } = req.body;
-
-  bcrypt
-    .hash(password, 10)
-    .then((hash) => User.create({
-      email,
-      password: hash,
-      name,
-    }))
-    .then((user) => {
-      const { _id } = user;
-      return res.status(201).send({
-        email,
-        name,
-        _id,
-      });
-    })
-    .catch((err) => {
-      if (err.code === 11000) {
-        next(
-          new ConflictError(
-            'Пользователь с таким электронным адресом уже зарегистрирован',
-          ),
-        );
-      } else if (err.name === 'ValidationError') {
-        next(
-          new BadRequestError(
-            'Переданы некорректные данные при регистрации пользователя',
-          ),
-        );
-      } else {
-        next(err);
-      }
-    });
-}
+};
 
 module.exports = {
-  getUserId,
-  login,
-  editProfileUserInfo,
-  registration,
+  registrationUser,
+  getUserInfo,
+  editUserInfo,
+  loginUser,
 };

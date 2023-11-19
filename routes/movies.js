@@ -1,44 +1,16 @@
-const router = require('express').Router();
-// eslint-disable-next-line import/no-extraneous-dependencies
-const { celebrate, Joi } = require('celebrate');
-
-const { urlRegexPattern } = require('../utils/constants');
+const movieRouter = require('express').Router();
+const { createMovieValidator, deleteMovieValidator } = require('../middlewares/validation');
 const {
-  getMovie,
-  addNewMovie,
-  removeMovie,
+  getMovies, createMovie, deleteMovie,
 } = require('../controllers/movies');
 
-router.post(
-  '/',
-  celebrate({
-    body: Joi.object().keys({
-      country: Joi.string().required(),
-      director: Joi.string().required(),
-      duration: Joi.number().required(),
-      image: Joi.string().required().pattern(urlRegexPattern),
-      description: Joi.string().required(),
-      year: Joi.string().required(),
-      trailerLink: Joi.string().required().pattern(urlRegexPattern),
-      thumbnail: Joi.string().required().pattern(urlRegexPattern),
-      movieId: Joi.number().required(),
-      nameRU: Joi.string().required(),
-      nameEN: Joi.string().required(),
-    }),
-  }),
-  addNewMovie,
-);
+// Маршрут получения списка фильмов
+movieRouter.get('/movies', getMovies);
 
-router.get('/', getMovie);
+// Маршрут создания нового фильма
+movieRouter.post('/movies', createMovieValidator, createMovie);
 
-router.delete(
-  '/:id',
-  celebrate({
-    params: Joi.object().keys({
-      movieId: Joi.string().length(24).hex().required(),
-    }),
-  }),
-  removeMovie,
-);
+// Маршрут удаления фильма
+movieRouter.delete('/movies/:movieId', deleteMovieValidator, deleteMovie);
 
-module.exports = router;
+module.exports = movieRouter;

@@ -1,18 +1,21 @@
 const Movie = require('../models/movie');
-
 const BadRequestError = require('../errors/BadRequestError');
-const NotFoundError = require('../errors/NotFoundError');
 const AccessDeniedError = require('../errors/AccessDeniedError');
+const NotFoundError = require('../errors/NotFoundError');
 
-// Получение массива карточек
-function getMovie(req, res, next) {
+// Получение массива фильмов
+const getMovies = (req, res, next) => {
   Movie.find({ owner: req.user._id })
-    .then((movies) => res.send(movies))
+    .then((movies) => {
+      res.send(movies);
+    })
     .catch(next);
-}
+};
 
-// Создание новой карточки
-function addNewMovie(req, res, next) {
+// Создание нового фильма в базе данных mongoDB
+// для текущего пользователя.
+// Формирую в теле запроса нужные поля для заполнения.
+const createMovie = (req, res, next) => {
   const {
     country,
     director,
@@ -26,9 +29,6 @@ function addNewMovie(req, res, next) {
     nameRU,
     nameEN,
   } = req.body;
-  const { userId } = req.user;
-
-  // eslint-disable-next-line no-unused-expressions
   Movie.create({
     country,
     director,
@@ -38,56 +38,54 @@ function addNewMovie(req, res, next) {
     image,
     trailerLink,
     thumbnail,
-    owner: userId,
     movieId,
     nameRU,
     nameEN,
+    owner: req.user._id,
   })
-    .then((movie) => res.status(201).send({ data: movie }))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
+    .then((movie) => res.send(movie))
+    .catch((e) => {
+      if (e.name === 'ValidationError') {
         next(
           new BadRequestError(
-            'Переданы некорректные данные при создании карточки',
+            'Переданы некорректные данные при создании карточки фильма',
           ),
         );
       } else {
-        next(err);
+        next(e);
       }
     });
-}
+};
 
-// Удаление карточки из массива
-function removeMovie(req, res, next) {
-  const { id: movieId } = req.params;
-  Movie.findById({
-    _id: movieId,
-  })
+// Удаление фильма
+const deleteMovie = (req, res, next) => {
+  Movie.findById(req.params.movieId)
+    .orFail(() => {
+      throw new NotFoundError('Фильм с указанным _id не найден');
+    })
     .then((movie) => {
-      if (!movie) {
-        throw new NotFoundError('Данные по указанному id не найдены');
+      const owner = movie.owner.toString();
+      if (req.user._id === owner) {
+        Movie.deleteOne(movie)
+          .then(() => {
+            res.send(movie);
+          })
+          .catch(next);
+      } else {
+        throw new AccessDeniedError('Невозможно удалить фильм');
       }
-
-      const { owner: movieOwnerId } = movie;
-
-      if (movieOwnerId.valueOf() !== movieId) {
-        throw new AccessDeniedError('Нет прав доступа');
-      }
-
-      return Movie.findByIdAndDelete(movieId);
     })
-    .then((deletedMovie) => {
-      if (!deletedMovie) {
-        throw new NotFoundError('Карточка уже была удалена');
+    .catch((e) => {
+      if (e.name === 'CastError') {
+        next(new BadRequestError('Переданы некорректные данные для удаления фильма'));
+      } else {
+        next(e);
       }
-
-      res.send({ data: deletedMovie });
-    })
-    .catch(next);
-}
+    });
+};
 
 module.exports = {
-  getMovie,
-  addNewMovie,
-  removeMovie,
+  getMovies,
+  createMovie,
+  deleteMovie,
 };
